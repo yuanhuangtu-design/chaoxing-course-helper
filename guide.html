@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>课程续播助手 · 使用说明</title><link rel="stylesheet" href="guide.css"></head>
+<body><main>
+<div class="eyebrow">本地扩展 · 使用说明</div>
+<h1>少一些重复操作，按课程要求播放</h1>
+<p class="lead">用于《马克思主义与当代科技》的视频续播。保留真实观看时长，平台显示任务完成后自动进入下一段或下一节。</p>
+<section><h2>开始使用</h2><ol>
+<li>把压缩包解压到固定文件夹。</li>
+<li>在 Edge 地址栏打开 <code>edge://extensions</code>，开启开发人员模式。</li>
+<li>点击“加载解压缩的扩展”，选择含有 <code>manifest.json</code> 的文件夹。</li>
+<li>打开课程的具体章节，点击扩展图标，再点“开始续播”。如首次自动播放受限，手动播放一次再开始。</li>
+</ol></section>
+<section><h2>运行时会做什么</h2><ul>
+<li>按页面顺序一次播放一个视频；同一节的多个视频会依次处理。</li>
+<li>通过播放器倍速按钮尝试选定速度；不支持时沿用当前速度，并显示实际速度。</li>
+<li>读取“任务点已完成”标记后续播。视频结束但平台未更新时会等待。</li>
+<li>遇到作答、验证、意外暂停、长时间卡顿或无法识别的任务时停止。</li>
+<li>点击“停止并暂停”可暂停由助手接管的视频。关闭课程标签页也会结束续播。</li>
+</ul></section>
+<section><h2>保持浏览器打开</h2><p>可关闭扩展弹窗，课程标签页和浏览器需要保持打开，电脑不要休眠。浏览器限制后台播放、网站要求前台学习或发生验证时，需要你回到页面处理。浏览器重启后请重新点击开始。</p></section>
+<section><h2>权限与数据</h2><p>仅允许访问 <code>mooc1.chaoxing.com</code> 和 <code>mooc2-ans.chaoxing.com</code>，并且启动时核对课程编号 267281064。使用本地临时状态和浏览器定时器维持续播。代码不读取账户凭据，不上传页面或个人资料，不调用记分接口，不改写播放进度或任务标记。</p></section>
+<section><h2>完成后核对</h2><p>回到课程目录查看总任务点是否为 35/35。此版本只处理可识别的视频任务，测验和其他类型任务需要你处理。如果页面结构或播放器更新，扩展可能停止并给出提示。</p><p>开发时已根据课程页面记录适配控件并完成本地模拟检查；尚未在安装后的真实课程环境验证整节连续切换。</p></section>
+<footer><a href="https://learn.microsoft.com/en-us/microsoft-edge/extensions-chromium/getting-started/extension-sideloading" target="_blank" rel="noopener">Microsoft Edge 官方本地安装说明</a></footer>
+</main></body></html>

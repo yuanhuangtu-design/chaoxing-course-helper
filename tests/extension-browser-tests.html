@@ -1,0 +1,66 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>课程续播助手 · 本地检查</title>
+<style>body{font:15px/1.8 system-ui;margin:35px;color:#173d32;background:#f3f7f3}h1{font-size:24px}.pass{color:#087c54}.fail{color:#b22222}#fixture{position:fixed;left:10px;bottom:10px;background:white;padding:8px;border:1px solid #ccc}button{padding:7px}video{width:120px;height:70px}#results{max-width:950px}</style>
+<h1>课程续播助手 · 本地模拟检查</h1><p>使用模拟任务页面；不连接学习通，不修改真实学习记录。</p>
+<strong id="summary">检查中…</strong><ol id="results"></ol><div id="fixture"></div>
+<script type="module">
+import {allowedCourse, decide} from '/extension/core.js';
+import {inspectPage, operatePage} from '/extension/dom.js';
+const results=[];
+const eq=(a,b)=>{if(JSON.stringify(a)!==JSON.stringify(b))throw Error(JSON.stringify(a)+' != '+JSON.stringify(b));};
+const test=(name,fn)=>{try{fn();results.push({name,ok:true});}catch(e){results.push({name,ok:false,error:e.message});}};
+const frame=(id,tasks=[],videos=[],extra={})=>({frameId:id,documentId:'doc-'+id,tasks,videos,challenge:false,host:false,nextEnabled:false,...extra});
+const v=(extra={})=>({index:0,paused:true,ended:false,currentTime:0,duration:100,rate:2,error:false,taskStatus:'unknown',...extra});
+const host=()=>frame(0,[],[],{host:true,nextEnabled:true,pageKey:'lesson-a'});
+test('只允许指定域名、指定课程与学习页面',()=>{
+ eq(allowedCourse('https://mooc1.chaoxing.com/mycourse/studentstudy?courseId=267281064'),true);
+ eq(allowedCourse('https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/stu?courseid=267281064'),true);
+ eq(allowedCourse('https://mooc1.chaoxing.com.evil.example/mycourse/studentstudy?courseId=267281064'),false);
+ eq(allowedCourse('https://mooc1.chaoxing.com/mycourse/studentstudy?courseId=123'),false);
+ eq(allowedCourse('https://mooc1.chaoxing.com/login?courseId=267281064'),false);
+ eq(allowedCourse('http://mooc1.chaoxing.com/mycourse/studentstudy?courseId=267281064'),false);
+});
+test('全部任务明确完成后才能切换',()=>eq(decide([host(),frame(1,['complete','complete'])]).kind,'next'));
+test('存在未完成任务时不能切换',()=>eq(decide([host(),frame(1,['complete','incomplete']),frame(2,[],[v()])]).kind,'start'));
+test('没有任务标记时等待，而不是跳过章节',()=>eq(decide([host(),frame(2,[],[v()])]).kind,'wait'));
+test('未知任务状态会停止',()=>eq(decide([host(),frame(1,['unknown'])]).kind,'stop'));
+test('视频已结束但任务未完成时等待平台',()=>eq(decide([host(),frame(1,['incomplete']),frame(2,[],[v({ended:true})])]).reason,'reporting'));
+test('上半节结束后只启动下半节',()=>{
+ const d=decide([host(),frame(1,['complete','incomplete']),frame(2,[],[v({ended:true})]),frame(3,[],[v()])]);eq(d.kind,'start');eq(d.video.frameId,3);
+});
+test('已完成任务对应的视频不重播',()=>{
+ const d=decide([host(),frame(1,['complete','incomplete']),frame(2,[],[v({taskStatus:'complete'})]),frame(3,[],[v({taskStatus:'incomplete'})])]);eq(d.video.frameId,3);
+});
+test('已完成视频仍在播放时先暂停，再处理下一段',()=>eq(decide([host(),frame(1,['complete','incomplete']),frame(2,[],[v({paused:false,taskStatus:'complete'})])]).kind,'pause'));
+test('正常播放时保持当前视频',()=>eq(decide([host(),frame(1,['incomplete']),frame(2,[],[v({paused:false})])]).kind,'playing'));
+test('两个视频同时播放时停止',()=>eq(decide([host(),frame(1,['incomplete','incomplete']),frame(2,[],[v({paused:false})]),frame(3,[],[v({paused:false})])]).kind,'stop'));
+test('需要验证或作答时停止',()=>eq(decide([host(),frame(1,['complete'],[],{challenge:true})]).kind,'stop'));
+test('媒体加载错误时停止',()=>eq(decide([host(),frame(1,['incomplete']),frame(2,[],[v({error:true})])]).kind,'stop'));
+test('末页没有可用下一节时停止并提示核对',()=>eq(decide([frame(0,[],[],{host:true,nextEnabled:false}),frame(1,['complete'])]).kind,'stop'));
+const fixture=document.querySelector('#fixture');
+let media, clicks=0;
+function prepare(extra=''){
+ fixture.innerHTML='<div role="option" aria-label="第一节 科学的本质"></div><div role="option" aria-label="任务点已完成"></div><div role="option" aria-label="任务点未完成"></div><div role="region" aria-label="视频播放器"><video></video><button title="播放视频">播放视频</button><button title="播放速度">播放速度</button></div><button role="button">下一节</button>'+extra;
+ media={paused:true,ended:false,currentTime:0,duration:100,playbackRate:1,readyState:4,error:null};
+ const video=fixture.querySelector('video');
+ for(const key of Object.keys(media))Object.defineProperty(video,key,{get:()=>media[key],configurable:true});
+ fixture.querySelector('[title="播放视频"]').onclick=()=>{media.paused=!media.paused;fixture.querySelector('[title="播放视频"],[title="暂停"]').title=media.paused?'播放视频':'暂停';};
+ fixture.querySelector('[title="播放速度"]').onclick=()=>media.playbackRate=2;
+ fixture.querySelector('[role="button"]').onclick=()=>clicks++;
+}
+test('真实 DOM 中读取任务标签与视频状态',()=>{prepare();const s=inspectPage();eq(s.tasks,['complete','incomplete']);eq(s.videos[0].paused,true);eq(s.host,true);});
+test('播放动作只触发播放器按钮',()=>{prepare();eq(operatePage({kind:'start',index:0}).ok,true);eq(media.paused,false);eq(media.currentTime,0);});
+test('暂停按钮有效且不更改进度',()=>{prepare();operatePage({kind:'start',index:0});eq(operatePage({kind:'pause',index:0}).ok,true);eq(media.paused,true);eq(media.currentTime,0);});
+test('倍速使用播放器按钮',()=>{prepare();eq(operatePage({kind:'speed',index:0}).ok,true);eq(media.playbackRate,2);});
+test('章节已变化时不触发下一节',()=>{prepare();clicks=0;eq(operatePage({kind:'next',pageKey:'wrong'}).ok,false);eq(clicks,0);});
+test('章节一致时才触发下一节',()=>{prepare();clicks=0;eq(operatePage({kind:'next',pageKey:inspectPage().pageKey}).ok,true);eq(clicks,1);});
+test('禁用的下一节按钮不会被触发',()=>{prepare();clicks=0;fixture.querySelector('[role="button"]').disabled=true;eq(operatePage({kind:'next',pageKey:inspectPage().pageKey}).ok,false);eq(clicks,0);});
+test('可见的选择题会暂停自动化',()=>{prepare('<input type="radio" name="q">');eq(inspectPage().challenge,true);});
+test('隐藏的题目控件不会产生误判',()=>{prepare('<input style="display:none" type="radio" name="q">');eq(inspectPage().challenge,false);});
+test('找不到的视频不会触发其他控件',()=>{prepare();eq(operatePage({kind:'start',index:99}).ok,false);});
+const passed=results.filter(r=>r.ok).length;
+document.querySelector('#summary').textContent=passed+'/'+results.length+' 项通过';
+document.querySelector('#summary').dataset.result=passed===results.length?'pass':'fail';
+for(const r of results){const li=document.createElement('li');li.className=r.ok?'pass':'fail';li.textContent=(r.ok?'通过：':'失败：')+r.name+(r.error?' — '+r.error:'');document.querySelector('#results').append(li);}
+fixture.hidden=true;
+window.localTestResults=results;
+</script></html>

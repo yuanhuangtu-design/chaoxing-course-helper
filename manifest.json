@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "课程续播助手 · 本地版",
+  "version": "1.0.0",
+  "minimum_chrome_version": "120",
+  "description": "为指定课程顺序播放视频，页面确认任务完成后续播下一节。",
+  "permissions": ["activeTab", "scripting", "storage", "alarms"],
+  "host_permissions": ["https://mooc1.chaoxing.com/*", "https://mooc2-ans.chaoxing.com/*"],
+  "background": { "service_worker": "worker.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "课程续播助手" },
+  "content_scripts": [{
+    "matches": ["https://mooc1.chaoxing.com/*", "https://mooc2-ans.chaoxing.com/*"],
+    "js": ["pulse.js"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }]
+}

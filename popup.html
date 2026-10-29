@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>课程续播助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="eyebrow">本地扩展 · 仅此课程</div>
+  <h1>课程续播助手</h1>
+  <p class="course">马克思主义与当代科技</p>
+  <div class="status-card" aria-live="polite">
+    <span id="state-tag">尚未开始</span>
+    <p id="status">正在读取状态…</p>
+    <p id="counts" class="muted"></p>
+  </div>
+  <label for="rate">播放速度</label>
+  <select id="rate">
+    <option value="2">优先 2 倍速</option>
+    <option value="1.5">优先 1.5 倍速</option>
+    <option value="1">优先 1 倍速</option>
+    <option value="0">沿用播放器当前速度</option>
+  </select>
+  <div class="actions">
+    <button id="start">开始续播</button>
+    <button id="stop" class="secondary">停止并暂停</button>
+  </div>
+  <p class="hint">请保持课程标签页打开。视频任务确认完成后自动切换；遇到作答、验证或异常时停下提示。</p>
+  <a href="guide.html" target="_blank">使用说明与权限</a>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
